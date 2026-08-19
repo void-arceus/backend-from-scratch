@@ -24,7 +24,8 @@ int main(int argc, char **argv) {
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);  // TCP connection 
     if (sockfd == -1) {
-        perror("SOCKET ERROR"); 
+        perror("SOCKET ERROR");
+        std::cout << errno << "\n";
         exit(1);
     }
      
@@ -54,7 +55,7 @@ int main(int argc, char **argv) {
     const std::string response = 
         "HTTP/1.1 200 OK\r\n"  
         "Content-Type: text/plain\r\n"
-        "Content-Length:" + std::to_string(strlen(body)) + "\r\n\r\n"  // double \r\n means headers finished and actual data body begins
+        "Content-Length:" + std::to_string(strlen(body)) + "\r\n\r\n" 
         +  
         body; 
 
@@ -72,9 +73,14 @@ int main(int argc, char **argv) {
     }
     
     std::cout << "Recieved:\n" << buffer << "\n";
+
     std::string reqType = getRequestType(buffer, receive);
-    
+    std::string httpVersion = getHTTPVersion(buffer, receive); 
+    std::string reqURI = getURI(buffer, receive); 
+
     std::cout << "Request type: " << reqType << "\n";
+    std::cout << "HTTP Version: " << httpVersion << "\n"; 
+    std::cout << "Request URI: " << reqURI << "\n";
 
     char hostname[1000];
     int host_name = gethostname(hostname, 1000);
