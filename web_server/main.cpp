@@ -71,17 +71,27 @@ int main(int argc, char **argv) {
         perror("RECIEVE ERROR");
         exit(1);
     }
-    
-    std::cout << "Recieved:\n" << buffer << "\n";
+
+    std::cout << "RECEIVE: \n";
+    for (int i = 0; i < receive; ++i) {
+        if (buffer[i] == '\0') break; 
+        std::cout << buffer[i];
+    }
 
     std::string reqType = getRequestType(buffer, receive);
     std::string httpVersion = getHTTPVersion(buffer, receive); 
     std::string reqURI = getURI(buffer, receive); 
+    std::unordered_map<std::string, std::string> reqHeaders = getReqHeaders(buffer, receive);
 
+    std::cout << "Request Data parsed:\n";
     std::cout << "Request type: " << reqType << "\n";
     std::cout << "HTTP Version: " << httpVersion << "\n"; 
     std::cout << "Request URI: " << reqURI << "\n";
-
+    
+    for (auto &[key, value] : reqHeaders) {
+        std::cout << key << ":" << value <<" \n";
+    }
+    
     char hostname[1000];
     int host_name = gethostname(hostname, 1000);
 
