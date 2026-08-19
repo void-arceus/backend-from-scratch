@@ -77,21 +77,32 @@ int main(int argc, char **argv) {
         if (buffer[i] == '\0') break; 
         std::cout << buffer[i];
     }
+    std::cout << "\n";
 
     std::string reqType = getRequestType(buffer, receive);
     std::string httpVersion = getHTTPVersion(buffer, receive); 
     std::string reqURI = getURI(buffer, receive); 
     std::unordered_map<std::string, std::string> reqHeaders = getReqHeaders(buffer, receive);
 
-    std::cout << "Request Data parsed:\n";
-    std::cout << "Request type: " << reqType << "\n";
-    std::cout << "HTTP Version: " << httpVersion << "\n"; 
-    std::cout << "Request URI: " << reqURI << "\n";
+    std::cout << "-----------------------------------------\n";
+    std::cout << "================REQ DATA================\n";
     
+    std::cout << "Req Type: " << reqType << "\n";
+    std::cout << "HTTP Version: " << httpVersion << "\n";
+    std::cout << "Req URI: " << reqURI << "\n";
+    std::cout << "Request Headers: \n"; 
+
     for (auto &[key, value] : reqHeaders) {
-        std::cout << key << ":" << value <<" \n";
+        std::cout << key << ":" << value << "\n";
     }
-    
+
+    if (reqType == "POST") {
+        int len = std::stoi(reqHeaders["content-length"]);
+        std::string reqBody = getReqBody(buffer, receive, len);
+        std::cout << "\nReq Body: " << reqBody << "\n";
+    }
+
+    std::cout << "-----------------------------------------\n";
     char hostname[1000];
     int host_name = gethostname(hostname, 1000);
 

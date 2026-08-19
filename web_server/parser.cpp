@@ -84,3 +84,21 @@ std::unordered_map<std::string, std::string> getReqHeaders(const char *buffer, i
 }
 
 
+std::string getReqBody(const char *buffer, int length, int contentLength) {
+    std::string res = "";
+    int i = 0; 
+    while (i < (length-4)) {
+        if (buffer[i] == '\r' && buffer[i+1] == '\n' && buffer[i+2] == '\r' && buffer[i+3] == '\n') {
+            i += 4;    
+            break;
+        }
+        ++i;
+    }
+    int len = i+contentLength;
+    while (i <= len) {
+        res += buffer[i];
+        ++i;
+    }
+    return res;
+}
+
