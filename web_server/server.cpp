@@ -6,6 +6,19 @@
 #include <string.h>
 #include <string>
 #include <unistd.h>
+#include <iostream>
+#include <unordered_map>
+
+#include "parser.hpp"
+#include "router.hpp"
+
+struct Request{
+    std::string type; 
+    std::string uri; 
+    std::string version; 
+    std::unordered_map<std::string, std::string> headers;
+    std::string body;
+};
 
 int create_and_bind_socket (const int PORT) {
     struct sockaddr_in my_addr;
@@ -46,21 +59,58 @@ void handle_client (int client_fd) {
         size_t recv_buffer = recv(client_fd, buffer, sizeof(buffer)-1, 0);
 
         if (recv_buffer == -1) {
-            perror("RECEIVE ERROR:");  
+            perror("RECEIVE ERROR:"); 
             close(client_fd);
             return; 
         }
         if (recv_buffer == 0) break;
 
+        // parsing the request data
+        struct Request reqData; 
+        reqData.type = getRequestType(buffer, recv_buffer); 
+        reqData.version  = getHTTPVersion(buffer, recv_buffer); 
+        reqData.uri = getURI(buffer, recv_buffer);
+        reqData.headers = getReqHeaders(buffer, recv_buffer);
+
+        if (reqData.type == "POST" && reqData.headers.count("content-length")) { 
+            reqData.body = getReqBody(buffer, recv_buffer, stoi(reqData.headers.at("content-length"))); 
+        } else {
+            reqData.body = ""; 
+        }
+    
+        // testing the parsed data
+        std::cout << "------------------------------------------------------------------------\n";
+        std::cout << "TYPE: " << reqData.type << "\n";
+        std::cout << "VERSION: " << reqData.version << "\n";
+        std::cout << "URI: " << reqData.uri << "\n";
+        std::cout << "HEADERS:\n";
+        for (auto &[key, value] : reqData.headers) {
+            std::cout << key << ":" << value << "\n";
+        }
+        if (reqData.body != "") {
+            std::cout << "BODY: " << reqData.body << "\n";
+        }
+        std::cout << "------------------------------------------------------------------------\n";
+
         //send response
-        const char *body = "Hello,World!"; 
+        const char *body; 
+        std::string res = ""; 
+        if (reqData.type == "GET") {
+            res = getRequestHandler();
+        } else if (reqData.type == "POST") {
+            res = postRequestHandler(reqData.uri);
+        } else {
+            res = "Hello from nowhere";
+        }
+        
+        body = res.c_str();
+
         const std::string response = 
             "HTTP/1.1 200 OK\r\n"
             "Content-Type: text/plain\r\n"
             "Content-Length: " + std::to_string(strlen(body)) + "\r\n"
             "\r\n" 
-            + body; 
-   
+            + body;  
         int bytes_sent = send(client_fd, response.c_str(), (int)response.size(), 0); 
     }
     close(client_fd);

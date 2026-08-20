@@ -10,7 +10,7 @@ int main() {
     int server_fd = create_and_bind_socket(PORT);  
     start_listening(server_fd, BACKLOG); 
 
-    std::cout << "SERVER is runnin on PORT: " << PORT << "\n";
+    std::cout << "SERVER is running on PORT: " << PORT << "\n";
     
     while (true) {
         struct sockaddr_in client_addr; 
