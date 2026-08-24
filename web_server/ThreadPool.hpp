@@ -7,20 +7,22 @@
 #include <condition_variable>
 #include <thread>
 
-class ThreadPool {
-    private:
-        std::vector<std::thread> workers; 
-        std::queue<int> task_queue;
-        std::condition_variable cv;
-        std::mutex queue_mutex;
-        bool flag = false;
+class ThreadPool
+{
+private:
+    std::vector<std::thread> workers;
+    std::queue<int> task_queue;
+    std::condition_variable cv;
+    std::mutex queue_mutex;
+    bool flag = false;
 
-        // internal loop executed by all worker thread
-        void worker_loop(); 
-    public: 
-        ThreadPool(unsigned int num_threads);
-        void addTask (int task_fd);
-        ~ThreadPool();
+    // internal loop executed by all worker thread
+    void worker_loop();
+
+public:
+    ThreadPool(unsigned int num_threads);
+    void addTask(int task_fd);
+    ~ThreadPool();
 };
 
 #endif

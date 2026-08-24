@@ -1,81 +1,99 @@
 #include "parser.hpp"
-#include <string> 
+#include <string>
 #include <unordered_map>
-#include <algorithm> 
+#include <algorithm>
 #include <cctype>
 
-std::string getRequestType(const char *buffer, int length) 
+std::string getRequestType(const char *buffer, int length)
 {
     std::string res = "";
-    for (int i = 0; i < length; ++i) {
-        if (buffer[i] == ' ') break;
-        res += buffer[i]; 
+    for (int i = 0; i < length; ++i)
+    {
+        if (buffer[i] == ' ')
+            break;
+        res += buffer[i];
     }
     return res;
 }
 
-std::string getHTTPVersion(const char *buffer, int length) {
+std::string getHTTPVersion(const char *buffer, int length)
+{
     std::string res = "";
-    int i = 0; 
-    while (i < length && buffer[i] != 'H') ++i;
-    while (i < length) {
-        if (buffer[i] == '\r' || buffer[i] == '\n') break;
-        res += buffer[i]; 
+    int i = 0;
+    while (i < length && buffer[i] != 'H')
+        ++i;
+    while (i < length)
+    {
+        if (buffer[i] == '\r' || buffer[i] == '\n')
+            break;
+        res += buffer[i];
         ++i;
     }
     return res;
 }
 
-std::string getURI(const char *buffer, int length) {
-    std::string res = ""; 
-    int i = 0; 
-    while (i < length && buffer[i] != '/') ++i; 
-    while (i < length && buffer[i] != ' ') {
-        res += buffer[i]; 
-        ++i; 
+std::string getURI(const char *buffer, int length)
+{
+    std::string res = "";
+    int i = 0;
+    while (i < length && buffer[i] != '/')
+        ++i;
+    while (i < length && buffer[i] != ' ')
+    {
+        res += buffer[i];
+        ++i;
     }
     return res;
 }
 
-std::unordered_map<std::string, std::string> getReqHeaders(const char *buffer, int length) { 
+std::unordered_map<std::string, std::string> getReqHeaders(const char *buffer, int length)
+{
     std::unordered_map<std::string, std::string> reqHeaders;
-   
-    int i = 0; 
 
-    while (i < length && buffer[i] != '\n') ++i;
+    int i = 0;
+
+    while (i < length && buffer[i] != '\n')
+        ++i;
     ++i;
-    
-    while (i < length) {
-        if (buffer[i] == '\r') break;
-        std::string currLine = ""; 
-        while (i < length) {
-            if (buffer[i] == '\n') {
-                break; 
+
+    while (i < length)
+    {
+        if (buffer[i] == '\r')
+            break;
+        std::string currLine = "";
+        while (i < length)
+        {
+            if (buffer[i] == '\n')
+            {
+                break;
             }
-            if (buffer[i] != '\r') { 
+            if (buffer[i] != '\r')
+            {
                 currLine += buffer[i];
             }
-            ++i; 
+            ++i;
         }
-  
-        // extract the key and value from here 
+
+        // extract the key and value from here
         std::string key = "", value = "";
-        int j = 0; 
-        while (j < (int)currLine.size()) {
-            if (currLine[j] == ':') {
-                ++j; 
+        int j = 0;
+        while (j < (int)currLine.size())
+        {
+            if (currLine[j] == ':')
+            {
+                ++j;
                 break;
-            } 
+            }
             key += currLine[j];
             ++j;
         }
-        while (j < (int)currLine.size()) {
-            value += currLine[j]; 
+        while (j < (int)currLine.size())
+        {
+            value += currLine[j];
             ++j;
         }
-        std::transform(key.begin(), key.end(), key.begin(), [](unsigned char c) {
-            return std::tolower(c);
-        });
+        std::transform(key.begin(), key.end(), key.begin(), [](unsigned char c)
+                       { return std::tolower(c); });
         reqHeaders[key] = value;
         ++i;
     }
@@ -83,22 +101,24 @@ std::unordered_map<std::string, std::string> getReqHeaders(const char *buffer, i
     return reqHeaders;
 }
 
-
-std::string getReqBody(const char *buffer, int length, int contentLength) {
+std::string getReqBody(const char *buffer, int length, int contentLength)
+{
     std::string res = "";
-    int i = 0; 
-    while (i < (length-4)) {
-        if (buffer[i] == '\r' && buffer[i+1] == '\n' && buffer[i+2] == '\r' && buffer[i+3] == '\n') {
-            i += 4;    
+    int i = 0;
+    while (i < (length - 4))
+    {
+        if (buffer[i] == '\r' && buffer[i + 1] == '\n' && buffer[i + 2] == '\r' && buffer[i + 3] == '\n')
+        {
+            i += 4;
             break;
         }
         ++i;
     }
-    int len = i+contentLength;
-    while (i <= len) {
+    int len = i + contentLength;
+    while (i <= len)
+    {
         res += buffer[i];
         ++i;
     }
     return res;
 }
-

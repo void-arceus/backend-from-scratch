@@ -3,7 +3,7 @@
 
 #include <string>
 
-std::string getRequestHandler(); 
+std::string getRequestHandler();
 std::string postRequestHandler(std::string uri);
 
 #endif
