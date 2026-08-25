@@ -8,27 +8,27 @@
 
 #include "../server.hpp"
 
-#define PORT 3000
+#define PORT 3002
 #define BACKLOG 10
 
-void server_one() 
+void server_three() 
 {
-    int server_one_fd = create_and_bind_socket(PORT);
-    if (server_one_fd == -1) 
+    int server_three_fd = create_and_bind_socket(PORT);
+    if (server_three_fd == -1) 
     {   
-        perror("SERVER ONE FD:");
+        perror("SERVER THREE FD:");
         return;
     }
 
-    std::cout << "Server one fd: " << server_one_fd << "\n";
-    start_listening(server_one_fd, BACKLOG);
+    std::cout << "Server three fd: " << server_three_fd << "\n";
+    start_listening(server_three_fd, BACKLOG);
 
     struct sockaddr_in client_addr;
     socklen_t len = sizeof(struct sockaddr_in);
     
-    int server_one_client_fd = accept(server_one_fd, (struct sockaddr *) &client_addr, &len);
+    int server_three_client_fd = accept(server_three_fd, (struct sockaddr *) &client_addr, &len);
     
-    if (server_one_client_fd == -1) 
+    if (server_three_client_fd == -1) 
     {
         perror("CLIENT ERROR"); 
         return; 
@@ -39,17 +39,17 @@ void server_one()
     /* read request */
     char buffer[4096];
     memset(buffer, 0, sizeof(buffer)); 
-    size_t recv_buffer = recv(server_one_client_fd, buffer, sizeof(buffer)-1, 0);
+    size_t recv_buffer = recv(server_three_client_fd, buffer, sizeof(buffer)-1, 0);
     
     if (recv_buffer == -1) 
     {
-        perror("SERVER ONE RECIEVE ERROR");
+        perror("SERVER THREE RECIEVE ERROR");
         continue; 
     }
 
     // send response 
     const char *body;
-    std::string res = "Response from SERVER 1";
+    std::string res = "Response from SERVER 3";
     
     body = res.c_str();
     
@@ -60,10 +60,10 @@ void server_one()
         std::to_string(strlen(body)) + "\r\n\r\n"
         + body;
     
-    int bytes_send = send(server_one_client_fd, response.c_str(), (int)response.size(), 0);
+    int bytes_send = send(server_three_client_fd, response.c_str(), (int)response.size(), 0);
 
-    std::cout << "Bytes send from SERVER 1: " << bytes_send << "\n";
+    std::cout << "Bytes send from SERVER 3: " << bytes_send << "\n";
     }
-    close(server_one_client_fd);
+    close(server_three_client_fd);
 }
 

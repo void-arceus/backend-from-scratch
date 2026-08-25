@@ -5,63 +5,152 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <vector>
 
 #include "server.hpp"
 
 #define PORT 8080
 #define BACKLOG 10
+#define SERVER_ONE_PORT 3000
+#define SERVER_TWO_PORT 3001
+#define SERVER_THREE_PORT 3002
+
+
+std::vector<int> server_fds(3);
+
+void connect_servers () 
+{   
+    struct sockaddr_in server_one_addr, server_two_addr, server_three_addr;
+    
+    // server_one
+    server_one_addr.sin_family = AF_INET;
+    server_one_addr.sin_port = htons(SERVER_ONE_PORT); 
+    server_one_addr.sin_addr.s_addr = INADDR_ANY;
+    memset(server_one_addr.sin_zero, '\0', 8);
+
+    // server_two
+    server_two_addr.sin_family = AF_INET;
+    server_two_addr.sin_port = htons(SERVER_TWO_PORT); 
+    server_two_addr.sin_addr.s_addr = INADDR_ANY;
+    memset(server_two_addr.sin_zero, '\0', 8);
+
+    // server_three
+    server_three_addr.sin_family = AF_INET;
+    server_three_addr.sin_port = htons(SERVER_THREE_PORT); 
+    server_three_addr.sin_addr.s_addr = INADDR_ANY;
+    memset(server_three_addr.sin_zero, '\0', 8);
+
+    // connectin to each server
+    int server_one_fd = socket(AF_INET, SOCK_STREAM, 0);
+    int server_two_fd = socket(AF_INET, SOCK_STREAM, 0);
+    int server_three_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (server_one_fd == -1 || server_two_fd == -1 || server_three_fd == -1) 
+    {
+        perror("SOCKET ERROR:");
+        return;
+    }
+    
+    server_fds[0] = server_one_fd;
+    server_fds[1] = server_two_fd;
+    server_fds[2] = server_three_fd;
+
+    int connect_one = connect(server_one_fd, (struct sockaddr*)&server_one_addr, sizeof(struct sockaddr_in)); 
+    int connect_two = connect(server_two_fd, (struct sockaddr*)&server_two_addr, sizeof(struct sockaddr_in));
+    int connect_three = connect(server_three_fd, (struct sockaddr*)&server_three_addr, sizeof(struct sockaddr_in));
+
+    if (connect_one == -1) 
+    {
+        perror("SERVER ONE CONNECT ERROR"); 
+        return; 
+    }
+
+    if (connect_two == -1) 
+    {
+        perror("SERVER TWO CONNECT ERROR"); 
+        return; 
+    }
+
+    if (connect_three == -1) 
+    {
+        perror("SERVER THREE CONNECT ERROR"); 
+        return; 
+    }
+
+    return;
+}
 
 void proxy () 
 {
     int proxy_fd = create_and_bind_socket(PORT);
+    if (proxy_fd == -1) 
+    {
+        perror("FILE DESCRIPTOR ERROR:");
+        return;
+    }
     start_listening(proxy_fd, BACKLOG);
-    std::cout << "Server is runnign on PORT: " << PORT << "\n";
 
-    struct sockaddr_in client_addr;
-    socklen_t addr_len = sizeof(struct sockaddr_in);
+    /* connecting to the servers*/
+    connect_servers();
+    int index = 0;
 
-    int client_fd = accept(proxy_fd, (struct sockaddr*) &client_addr, &addr_len);
+    std::cout << "Server is running on PORT: " << PORT << "\n";
+
+
     
-    if (client_fd == -1) 
+    while (true) 
     {
-        perror("CLIENT ERROR");
-        return; 
-    }
+        struct sockaddr_in client_addr;
+        socklen_t addr_len = sizeof(struct sockaddr_in);
 
-    /* receive data */
-    char buffer[4096];  
-    memset(buffer, 0, sizeof(buffer));
-    size_t recv_buffer = recv(client_fd, buffer, sizeof(buffer)-1, 0);
-
-    if (recv_buffer == -1) 
-    {
-        perror("REVEIVE ERROR");
-        return; 
-    }
-
-    /* server one */
-    struct sockaddr_in server_one;
+        int client_fd = accept(proxy_fd, (struct sockaddr*) &client_addr, &addr_len);
     
-    server_one.sin_family = AF_INET;
-    server_one.sin_port = htons(3000); 
-    server_one.sin_addr.s_addr = INADDR_ANY;
-    memset(&server_one.sin_zero, '\0', 8);
+        if (client_fd == -1) 
+        {
+            continue; 
+        }
+
+        /* receive data */
+        char buffer[4096];  
+        memset(buffer, 0, sizeof(buffer));
+        size_t recv_buffer = recv(client_fd, buffer, sizeof(buffer), 0);
+        std::cout << "Receive buffer: " << recv_buffer << "\n";
+
+        if (recv_buffer == -1) 
+        {
+            perror("REVEIVE ERROR");
+            close(client_fd); 
+            return; 
+        }
     
-    int backend_one_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (backend_one_fd == -1) 
-    {
-        perror("BACKEND ONE FILE DESCRIPTOR,"); 
+        if(recv_buffer == 0) 
+        { 
+            close(client_fd); 
+            break;
+        }   
+
+        /* create connection to the servers */
+        int curr_backend_fd = server_fds[(index%3)];
+    
+        int forward_request = send(curr_backend_fd, buffer, recv_buffer, 0);
+   
+        char server_response[4096];
+        memset(server_response, 0, sizeof(server_response));
+        int response_buffer = recv(curr_backend_fd, server_response, sizeof(server_response), 0);  
+    
+        if (response_buffer == -1) 
+        {
+            perror("SERVER RESPONSE BUFFER ERROR:");
+            continue; 
+        }
+        
+        int client_response = send(client_fd, server_response, response_buffer, 0);
+   
+        if (client_response == -1) 
+        {
+            perror("CLIENT RESPONSE ERROR:"); 
+            continue;
+        }
+        ++index; 
     }
-    int connect_ = connect(backend_one_fd, (struct sockaddr*)& server_one, sizeof(struct sockaddr_in));
-    if (connect_ == -1) 
-    {
-        perror("CONNECT ERROR");
-        return; 
-    }
-
-
-    /* send data to server one */
-    size_t send_buffer = send(backend_one_fd, buffer, recv_buffer, 0);      
-
-    close(client_fd);
 }

@@ -8,27 +8,27 @@
 
 #include "../server.hpp"
 
-#define PORT 3000
+#define PORT 3001
 #define BACKLOG 10
 
-void server_one() 
+void server_two() 
 {
-    int server_one_fd = create_and_bind_socket(PORT);
-    if (server_one_fd == -1) 
+    int server_two_fd = create_and_bind_socket(PORT);
+    if (server_two_fd == -1) 
     {   
         perror("SERVER ONE FD:");
         return;
     }
 
-    std::cout << "Server one fd: " << server_one_fd << "\n";
-    start_listening(server_one_fd, BACKLOG);
+    std::cout << "Server two fd: " << server_two_fd << "\n";
+    start_listening(server_two_fd, BACKLOG);
 
     struct sockaddr_in client_addr;
     socklen_t len = sizeof(struct sockaddr_in);
     
-    int server_one_client_fd = accept(server_one_fd, (struct sockaddr *) &client_addr, &len);
+    int server_two_client_fd = accept(server_two_fd, (struct sockaddr *) &client_addr, &len);
     
-    if (server_one_client_fd == -1) 
+    if (server_two_client_fd == -1) 
     {
         perror("CLIENT ERROR"); 
         return; 
@@ -39,7 +39,7 @@ void server_one()
     /* read request */
     char buffer[4096];
     memset(buffer, 0, sizeof(buffer)); 
-    size_t recv_buffer = recv(server_one_client_fd, buffer, sizeof(buffer)-1, 0);
+    size_t recv_buffer = recv(server_two_client_fd, buffer, sizeof(buffer)-1, 0);
     
     if (recv_buffer == -1) 
     {
@@ -49,7 +49,7 @@ void server_one()
 
     // send response 
     const char *body;
-    std::string res = "Response from SERVER 1";
+    std::string res = "Response from SERVER 2";
     
     body = res.c_str();
     
@@ -60,10 +60,10 @@ void server_one()
         std::to_string(strlen(body)) + "\r\n\r\n"
         + body;
     
-    int bytes_send = send(server_one_client_fd, response.c_str(), (int)response.size(), 0);
+    int bytes_send = send(server_two_client_fd, response.c_str(), (int)response.size(), 0);
 
-    std::cout << "Bytes send from SERVER 1: " << bytes_send << "\n";
+    std::cout << "Bytes send from SERVER 2: " << bytes_send << "\n";
     }
-    close(server_one_client_fd);
+    close(server_two_client_fd);
 }
 

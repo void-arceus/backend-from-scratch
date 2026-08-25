@@ -31,6 +31,8 @@ int create_and_bind_socket(const int PORT)
         perror("SOCKET FD ERROR:");
         exit(1);
     }
+    
+    std::cout << "Socket FD: " << sock_fd << "\n";
 
     int opt = 1;
     setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
@@ -134,5 +136,6 @@ void handle_client(int client_fd)
             body;
         int bytes_sent = send(client_fd, response.c_str(), (int)response.size(), 0);
     }
+     
     close(client_fd);
 }
