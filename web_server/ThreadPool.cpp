@@ -1,4 +1,3 @@
-#include "server.hpp"
 #include "ThreadPool.hpp"
 
 void ThreadPool::worker_loop()
@@ -6,6 +5,7 @@ void ThreadPool::worker_loop()
     while (true)
     {
         int client_fd;
+        struct taskStruct task;
         {
             std::unique_lock<std::mutex> lock(queue_mutex);
 
@@ -15,10 +15,10 @@ void ThreadPool::worker_loop()
 
             if (flag && task_queue.empty())
                 return;
-            client_fd = task_queue.front();
+            task = task_queue.front();
             task_queue.pop();
         }
-        handle_client(client_fd);
+        task.fn(task.file_descriptor);
     }
 }
 
@@ -30,11 +30,11 @@ ThreadPool::ThreadPool(unsigned int num_threads)
     }
 }
 
-void ThreadPool::addTask(int task_fd)
+void ThreadPool::addTask(std::function<void(int)> fn, int task_fd)
 {
     {
         std::lock_guard<std::mutex> lock(queue_mutex);
-        task_queue.push(task_fd);
+        task_queue.push({fn, task_fd});
     }
     cv.notify_one();
 }

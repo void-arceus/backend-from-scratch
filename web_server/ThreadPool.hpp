@@ -6,12 +6,19 @@
 #include <mutex>
 #include <condition_variable>
 #include <thread>
+#include <functional>
+
+struct taskStruct
+{
+    std::function<void(int)> fn;
+    int file_descriptor;
+};
 
 class ThreadPool
 {
 private:
     std::vector<std::thread> workers;
-    std::queue<int> task_queue;
+    std::queue<struct taskStruct> task_queue;
     std::condition_variable cv;
     std::mutex queue_mutex;
     bool flag = false;
@@ -21,7 +28,7 @@ private:
 
 public:
     ThreadPool(unsigned int num_threads);
-    void addTask(int task_fd);
+    void addTask(std::function<void(int)> fn, int task_fd);
     ~ThreadPool();
 };
 

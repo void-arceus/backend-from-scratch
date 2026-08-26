@@ -1,69 +1,41 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <stdio.h>
-#include <iostream>
-#include <string.h>
-#include <string>
 #include <unistd.h>
+#include <thread>
 
 #include "../server.hpp"
+#include "../ThreadPool.hpp"
 
 #define PORT 3000
 #define BACKLOG 10
 
-void server_one() 
+void server_one()
 {
     int server_one_fd = create_and_bind_socket(PORT);
-    if (server_one_fd == -1) 
-    {   
+    if (server_one_fd == -1)
+    {
         perror("SERVER ONE FD:");
         return;
     }
 
-    std::cout << "Server one fd: " << server_one_fd << "\n";
     start_listening(server_one_fd, BACKLOG);
 
-    struct sockaddr_in client_addr;
-    socklen_t len = sizeof(struct sockaddr_in);
-    
-    int server_one_client_fd = accept(server_one_fd, (struct sockaddr *) &client_addr, &len);
-    
-    if (server_one_client_fd == -1) 
-    {
-        perror("CLIENT ERROR"); 
-        return; 
-    }
+    unsigned int num_threads = std::thread::hardware_concurrency();
 
-    while (true) 
-    {
-    /* read request */
-    char buffer[4096];
-    memset(buffer, 0, sizeof(buffer)); 
-    size_t recv_buffer = recv(server_one_client_fd, buffer, sizeof(buffer)-1, 0);
-    
-    if (recv_buffer == -1) 
-    {
-        perror("SERVER ONE RECIEVE ERROR");
-        continue; 
-    }
+    ThreadPool Pool(num_threads);
 
-    // send response 
-    const char *body;
-    std::string res = "Response from SERVER 1";
-    
-    body = res.c_str();
-    
-    const std::string response = 
-        "HTTP/1.1 200 OK\r\n" 
-        "Content-Type: text/plain\r\n"
-        "Content-Length: " + 
-        std::to_string(strlen(body)) + "\r\n\r\n"
-        + body;
-    
-    int bytes_send = send(server_one_client_fd, response.c_str(), (int)response.size(), 0);
+    while (true)
+    {
+        struct sockaddr_in client_addr;
+        socklen_t len = sizeof(struct sockaddr_in);
 
-    std::cout << "Bytes send from SERVER 1: " << bytes_send << "\n";
+        int server_one_client_fd = accept(server_one_fd, (struct sockaddr *)&client_addr, &len);
+
+        if (server_one_client_fd == -1)
+        {
+            continue;
+        }
+        Pool.addTask(handle_client, server_one_client_fd);
     }
-    close(server_one_client_fd);
 }
-
