@@ -21,6 +21,7 @@
 std::vector<int> server_fds(3);
 std::mutex index_mutex;
 int server_index = 0;
+int req_count = 0;
 
 void connect_servers()
 {
@@ -161,7 +162,8 @@ void proxy()
         {
             continue;
         }
-
+        std::cout << "Request count: " << req_count << "\n";
+        ++req_count;
         Pool.addTask(handle_proxy, client_fd);
     }
 }
